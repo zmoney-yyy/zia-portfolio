@@ -1,4 +1,16 @@
 node_modules/
+dist/
+.astro/
+.vercel/
+.DS_Store
+
+# Secrets: only `.env.example` (names, no values) is committed
 .env
 .env.*
 !.env.example
+
+# Never ship drafts, private notes or proprietary figures
+drafts/
+metrics-from-project-files.md
+PORTFOLIO_SPEC.md
+*.pem
