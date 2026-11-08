@@ -1,0 +1,28 @@
+---
+import Chat from './Chat';
+import { ask, site } from '../data/site';
+---
+
+<section id="ask" class="on-dark mt-[72px] bg-night text-cream" aria-labelledby="ask-h">
+  <div class="mx-auto flex max-w-[1120px] flex-wrap items-start gap-14 px-6 py-[88px]">
+    <div class="min-w-0 flex-[1_1_380px]">
+      <p class="eyebrow mb-3.5 !text-night-muted">{ask.eyebrow}</p>
+      <h2
+        id="ask-h"
+        class="display mb-5 text-[clamp(1.875rem,4vw+0.5rem,2.5rem)] leading-[1.12]"
+      >
+        {ask.heading}
+      </h2>
+      <p class="m-0 max-w-[460px] text-lg text-night-text">{ask.body}</p>
+    </div>
+    <div class="min-w-0 flex-[1_1_460px]">
+      <Chat
+        client:visible
+        label={ask.label}
+        placeholder={ask.placeholder}
+        suggestions={ask.suggestions}
+        linkedin={site.linkedin}
+      />
+    </div>
+  </div>
+</section>
