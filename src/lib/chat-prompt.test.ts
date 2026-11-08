@@ -1,7 +1,7 @@
 import { readFileSync, readdirSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { about, hero, howIWork, proof } from '../data/site';
-import { approvedFacts, buildSystemPrompt, type PromptProject } from './chat-prompt';
+import { approvedFacts, buildSystemPrompt, withPrivateRules, type PromptProject } from './chat-prompt';
 
 const facts = readFileSync('content/chat-facts.md', 'utf8');
 const projects: PromptProject[] = readdirSync('src/content/projects')
@@ -53,5 +53,15 @@ describe('chat system prompt', () => {
     const unknown = [...nums(inside)].filter((n) => !allowed.has(n));
     expect(unknown.map((n) => `${n} @ ${inside.slice(Math.max(0, inside.indexOf(n) - 30), inside.indexOf(n) + 20)}`)).toEqual([]);
     expect([...nums(rules)].every((n) => /^\d$/.test(n) || n === '12')).toBe(true);
+  });
+});
+
+describe('withPrivateRules', () => {
+  it('appends the rules after the base prompt, separated by a blank line', () => {
+    expect(withPrivateRules('BASE', '  extra rule  ')).toBe('BASE\n\nextra rule');
+  });
+  it('leaves the prompt untouched when the rules are unset or blank', () => {
+    expect(withPrivateRules('BASE', undefined)).toBe('BASE');
+    expect(withPrivateRules('BASE', '   \n ')).toBe('BASE');
   });
 });

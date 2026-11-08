@@ -86,3 +86,9 @@ ${pageText}
 ${approvedFacts(facts)}
 </portfolio>`;
 }
+
+/** Appends the optional private rules (from the CHAT_PRIVATE_RULES env var) to the prompt. */
+export function withPrivateRules(prompt: string, rules: string | undefined): string {
+  const extra = rules?.trim();
+  return extra ? `${prompt}\n\n${extra}` : prompt;
+}

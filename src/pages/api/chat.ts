@@ -1,10 +1,10 @@
 import type { APIRoute } from 'astro';
 import Anthropic from '@anthropic-ai/sdk';
 import { getCollection } from 'astro:content';
-import { ANTHROPIC_API_KEY, CLAUDE_MODEL, CHAT_DAILY_LIMIT } from 'astro:env/server';
+import { ANTHROPIC_API_KEY, CLAUDE_MODEL, CHAT_DAILY_LIMIT, CHAT_PRIVATE_RULES } from 'astro:env/server';
 import facts from '../../../content/chat-facts.md?raw';
 import { CHAT, DEFAULT_DAILY_CHAT_LIMIT, DEFAULT_MODEL } from '../../lib/config';
-import { buildSystemPrompt } from '../../lib/chat-prompt';
+import { buildSystemPrompt, withPrivateRules } from '../../lib/chat-prompt';
 import { validateChat } from '../../lib/validate';
 import { check, clientId, underDailyCap } from '../../lib/ratelimit';
 import { about, hero, howIWork, proof } from '../../data/site';
@@ -70,7 +70,8 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
     model: CLAUDE_MODEL || DEFAULT_MODEL,
     max_tokens: CHAT.maxOutputTokens,
     output_config: { effort: 'low' },
-    system: await getSystemPrompt(),
+    // The base prompt is built once; CHAT_PRIVATE_RULES is read per request and appended.
+    system: withPrivateRules(await getSystemPrompt(), CHAT_PRIVATE_RULES),
     messages: parsed.messages,
   });
 
