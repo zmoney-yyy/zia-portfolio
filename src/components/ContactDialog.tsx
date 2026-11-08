@@ -1,5 +1,37 @@
 import { useEffect, useRef, useState } from 'react';
 import type { KeyboardEvent, SyntheticEvent } from 'react';
+import { PUBLIC_TURNSTILE_SITE_KEY } from 'astro:env/client';
+
+// Cloudflare Turnstile. The site key is public; with no key (local dev) the widget is skipped.
+const SITE_KEY = PUBLIC_TURNSTILE_SITE_KEY;
+
+type TurnstileApi = {
+  render: (el: HTMLElement, opts: Record<string, unknown>) => string;
+  reset: (id?: string) => void;
+  remove: (id?: string) => void;
+};
+declare global {
+  interface Window {
+    turnstile?: TurnstileApi;
+  }
+}
+
+let turnstileScript: Promise<void> | null = null;
+function loadTurnstile(): Promise<void> {
+  if (window.turnstile) return Promise.resolve();
+  turnstileScript ??= new Promise<void>((resolve, reject) => {
+    const el = document.createElement('script');
+    el.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+    el.async = true;
+    el.onload = () => resolve();
+    el.onerror = () => {
+      turnstileScript = null; // allow a retry the next time the dialog opens
+      reject(new Error('turnstile script failed to load'));
+    };
+    document.head.appendChild(el);
+  });
+  return turnstileScript;
+}
 
 type Status = 'idle' | 'sending' | 'success' | 'error';
 type Fields = { name: string; email: string; company: string; message: string; website: string };
@@ -14,6 +46,55 @@ export default function ContactDialog({ linkedin }: { linkedin: string }) {
   const [status, setStatus] = useState<Status>('idle');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState('');
+  const [showLinkedIn, setShowLinkedIn] = useState(true);
+  const [open, setOpen] = useState(false);
+  const [token, setToken] = useState('');
+  const [widgetFailed, setWidgetFailed] = useState(false);
+  const widgetBox = useRef<HTMLDivElement>(null);
+  const widgetId = useRef<string | null>(null);
+  const showWidget = !!SITE_KEY && open && status !== 'success';
+
+  // Render the widget while the dialog is open and the form is showing; remove it afterwards
+  // so a stale (expired or used) token is never kept around.
+  useEffect(() => {
+    if (!showWidget) return;
+    let cancelled = false;
+    setToken('');
+    setWidgetFailed(false);
+    loadTurnstile()
+      .then(() => {
+        if (cancelled || !widgetBox.current || !window.turnstile) return;
+        widgetId.current = window.turnstile.render(widgetBox.current, {
+          sitekey: SITE_KEY,
+          size: 'flexible',
+          theme: 'light',
+          callback: (t: string) => {
+            setToken(t);
+            setWidgetFailed(false);
+          },
+          'expired-callback': () => setToken(''),
+          'timeout-callback': () => setToken(''),
+          'error-callback': () => {
+            setToken('');
+            setWidgetFailed(true);
+          },
+        });
+      })
+      .catch(() => {
+        if (!cancelled) setWidgetFailed(true);
+      });
+    return () => {
+      cancelled = true;
+      if (widgetId.current && window.turnstile) window.turnstile.remove(widgetId.current);
+      widgetId.current = null;
+    };
+  }, [showWidget]);
+
+  // Tokens are single-use, so ask for a fresh one after any failed attempt.
+  function resetWidget() {
+    setToken('');
+    if (widgetId.current && window.turnstile) window.turnstile.reset(widgetId.current);
+  }
 
   // Any element with [data-open-contact] (nav, footer, chat fallback) opens the dialog.
   useEffect(() => {
@@ -23,6 +104,7 @@ export default function ContactDialog({ linkedin }: { linkedin: string }) {
       e.preventDefault();
       if (status === 'success') reset();
       ref.current?.showModal();
+      setOpen(true);
       document.body.style.overflow = 'hidden';
     };
     document.addEventListener('click', onClick);
@@ -33,11 +115,13 @@ export default function ContactDialog({ linkedin }: { linkedin: string }) {
     setFields(EMPTY);
     setErrors({});
     setFormError('');
+    setShowLinkedIn(true);
     setStatus('idle');
   }
 
   const close = () => ref.current?.close();
   const onClosed = () => {
+    setOpen(false);
     document.body.style.overflow = '';
   };
 
@@ -47,7 +131,7 @@ export default function ContactDialog({ linkedin }: { linkedin: string }) {
     if (e.key !== 'Tab' || !ref.current) return;
     const items = Array.from(
       ref.current.querySelectorAll<HTMLElement>(
-        'a[href], button:not([disabled]), input:not([disabled]):not([tabindex="-1"]), textarea:not([disabled])',
+        'a[href], button:not([disabled]), input:not([disabled]):not([tabindex="-1"]), textarea:not([disabled]), iframe',
       ),
     );
     if (!items.length) return;
@@ -72,14 +156,28 @@ export default function ContactDialog({ linkedin }: { linkedin: string }) {
     e.preventDefault();
     const form = e.currentTarget; // React clears currentTarget after the first await
     if (status === 'sending') return;
-    setStatus('sending');
     setFormError('');
+    setShowLinkedIn(true);
     setErrors({});
+
+    // Don't send until the human check has produced a token.
+    if (SITE_KEY && !token) {
+      setFormError(
+        widgetFailed
+          ? "The human check couldn't load. Please reload the page and try again."
+          : 'Please complete the human check above before sending.',
+      );
+      setShowLinkedIn(widgetFailed);
+      setStatus('error');
+      widgetBox.current?.querySelector<HTMLElement>('iframe')?.focus();
+      return;
+    }
+    setStatus('sending');
     try {
       const res = await fetch('/api/contact', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(fields),
+        body: JSON.stringify(SITE_KEY ? { ...fields, turnstileToken: token } : fields),
       });
       const data = await res.json().catch(() => ({}));
       if (res.ok && data.ok) {
@@ -94,10 +192,13 @@ export default function ContactDialog({ linkedin }: { linkedin: string }) {
         return;
       }
       setFormError(data.error || "That didn't go through. Please try again.");
+      setShowLinkedIn(data.code !== 'verification_failed');
       setStatus('error');
+      resetWidget();
     } catch {
       setFormError("That didn't go through. Please check your connection and try again.");
       setStatus('error');
+      resetWidget();
     }
   }
 
@@ -112,9 +213,9 @@ export default function ContactDialog({ linkedin }: { linkedin: string }) {
       onClick={(e) => {
         if (e.target === ref.current) close(); // click on the backdrop
       }}
-      className="m-auto w-[calc(100%-32px)] max-w-[520px] overflow-visible rounded-[18px] border border-ink bg-card p-0 text-ink shadow-[8px_8px_0_var(--color-sun)] backdrop:bg-ink/55"
+      className="m-auto w-[calc(100%-16px)] max-w-[520px] overflow-visible rounded-[18px] border border-ink bg-card p-0 text-ink shadow-[8px_8px_0_var(--color-sun)] backdrop:bg-ink/55"
     >
-      <div className="relative max-h-[calc(100dvh-48px)] overflow-y-auto p-8">
+      <div className="relative max-h-[calc(100dvh-48px)] overflow-y-auto p-4 sm:p-8">
         <button
           type="button"
           onClick={close}
@@ -225,13 +326,30 @@ export default function ContactDialog({ linkedin }: { linkedin: string }) {
                 />
               </div>
 
+              {SITE_KEY && (
+                <div>
+                  {/* Cloudflare Turnstile renders its own keyboard-operable iframe in here. */}
+                  <div ref={widgetBox} role="group" aria-label="Human verification" className="min-h-[65px]" />
+                  {widgetFailed && (
+                    <p className="m-0 mt-2 text-sm font-medium text-[#a32d0a]">
+                      The human check couldn't load. Please reload the page and try again, or reach me on LinkedIn.
+                    </p>
+                  )}
+                </div>
+              )}
+
               <div role="alert" className="m-0">
                 {status === 'error' && (
                   <p className="m-0 text-[15px] font-medium text-[#a32d0a]">
-                    {formError}{' '}
-                    <a href={linkedin} target="_blank" rel="noopener noreferrer">
-                      LinkedIn<span className="sr-only"> (opens in a new tab)</span>
-                    </a>
+                    {formError}
+                    {showLinkedIn && (
+                      <>
+                        {' '}
+                        <a href={linkedin} target="_blank" rel="noopener noreferrer">
+                          LinkedIn<span className="sr-only"> (opens in a new tab)</span>
+                        </a>
+                      </>
+                    )}
                   </p>
                 )}
               </div>

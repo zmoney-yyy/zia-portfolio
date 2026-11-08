@@ -17,10 +17,17 @@ export default defineConfig({
     schema: {
       ANTHROPIC_API_KEY: envField.string({ context: 'server', access: 'secret', optional: true }),
       CLAUDE_MODEL: envField.string({ context: 'server', access: 'public', optional: true }),
+      // Optional extra instructions appended to the chat system prompt at request time.
+      // Kept in Vercel env vars so they never enter the repo or the build output.
+      CHAT_PRIVATE_RULES: envField.string({ context: 'server', access: 'secret', optional: true }),
       CHAT_DAILY_LIMIT: envField.number({ context: 'server', access: 'public', optional: true }),
       RESEND_API_KEY: envField.string({ context: 'server', access: 'secret', optional: true }),
       RESEND_FROM: envField.string({ context: 'server', access: 'secret', optional: true }),
       CONTACT_TO_EMAIL: envField.string({ context: 'server', access: 'secret', optional: true }),
+      // Cloudflare Turnstile. The site key is public by design (it is rendered in the page);
+      // the secret key is server-only and used by /api/contact to verify tokens.
+      PUBLIC_TURNSTILE_SITE_KEY: envField.string({ context: 'client', access: 'public', optional: true }),
+      TURNSTILE_SECRET_KEY: envField.string({ context: 'server', access: 'secret', optional: true }),
       UPSTASH_REDIS_REST_URL: envField.string({ context: 'server', access: 'secret', optional: true }),
       UPSTASH_REDIS_REST_TOKEN: envField.string({ context: 'server', access: 'secret', optional: true }),
       KV_REST_API_URL: envField.string({ context: 'server', access: 'secret', optional: true }),

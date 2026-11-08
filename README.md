@@ -27,10 +27,14 @@ Set these in **Vercel > Project > Settings > Environment Variables**. Nothing is
 | --- | --- | --- |
 | `ANTHROPIC_API_KEY` | chat | Also set a monthly spend limit in the Anthropic Console. |
 | `CLAUDE_MODEL` | chat | Optional. Defaults to `claude-haiku-5-5`. |
+| `CHAT_PRIVATE_RULES` | chat | Optional. Extra instructions appended to the system prompt at request time. Lives only in Vercel. |
 | `CHAT_DAILY_LIMIT` | chat | Optional. Total chat requests per UTC day. Default 300. |
 | `RESEND_API_KEY`, `CONTACT_TO_EMAIL` | contact | The destination address lives only here. |
+| `PUBLIC_TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY` | contact | Cloudflare Turnstile. The site key is public and inlined at **build** time, so set it before deploying. Add `zia.mba` (and `localhost` for dev) to the widget's hostnames in Cloudflare. |
 | `RESEND_FROM` | contact | Optional verified sender. Defaults to Resend's test sender. |
 | `UPSTASH_REDIS_REST_URL`/`_TOKEN` or `KV_REST_API_URL`/`_TOKEN` | both | Rate limits. Add Upstash Redis from the Vercel Marketplace. |
+
+The contact form checks the Turnstile token server-side (after validation and the rate limit, before any email is sent) and rejects the request if it fails. With no `TURNSTILE_SECRET_KEY`, production refuses to send; local dev skips the check.
 
 In production the endpoints **fail closed** (a friendly "unavailable" message) if the rate-limit store is not configured. Local dev runs without it.
 
