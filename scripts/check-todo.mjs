@@ -20,7 +20,7 @@ const walk = (dir) => {
     const p = join(dir, name);
     const st = statSync(p);
     if (st.isDirectory()) walk(p);
-    else if (TEXT.has(extname(p))) {
+    else if (TEXT.has(extname(p)) && !/\.test\.[tj]sx?$/.test(p)) {  // tests are not shipped
       readFileSync(p, 'utf8')
         .split('\n')
         .forEach((line, i) => line.includes(NEEDLE) && hits.push(`${p}:${i + 1}: ${line.trim()}`));
