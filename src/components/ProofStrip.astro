@@ -1,0 +1,53 @@
+---
+import { proof } from '../data/site';
+---
+
+<section aria-label="Highlights" class="border-y border-ink">
+  <ul class="mx-auto m-0 flex max-w-[1120px] list-none flex-wrap gap-8 px-6 py-10">
+    {
+      proof.map((m) => (
+        <li class="min-w-0 flex-[1_1_220px]">
+          <div
+            class="display text-[44px] leading-[1.05] tracking-[-0.02em] text-accent"
+            data-count={m.count}
+            data-suffix={m.suffix}
+          >
+            {m.value}
+          </div>
+          <div class="mt-2 text-base font-medium text-ink-2">{m.label}</div>
+        </li>
+      ))
+    }
+  </ul>
+</section>
+
+<script>
+  // Count the numbers up when the strip scrolls into view. The server-rendered text is the
+  // final value, so this is purely decorative and skipped for reduced motion.
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const els = document.querySelectorAll<HTMLElement>('[data-count]');
+  if (!reduce && 'IntersectionObserver' in window) {
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          if (!e.isIntersecting) continue;
+          io.unobserve(e.target);
+          const el = e.target as HTMLElement;
+          const end = Number(el.dataset.count);
+          const suffix = el.dataset.suffix ?? '';
+          const start = performance.now();
+          const dur = 900;
+          const tick = (now: number) => {
+            const t = Math.min(1, (now - start) / dur);
+            const eased = 1 - Math.pow(1 - t, 3);
+            el.textContent = Math.round(end * eased) + suffix;
+            if (t < 1) requestAnimationFrame(tick);
+          };
+          requestAnimationFrame(tick);
+        }
+      },
+      { threshold: 0.6 },
+    );
+    els.forEach((el) => io.observe(el));
+  }
+</script>

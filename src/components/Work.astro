@@ -1,0 +1,61 @@
+---
+import { getCollection } from 'astro:content';
+import { workIntro } from '../data/site';
+
+const projects = (await getCollection('projects')).sort((a, b) => a.data.order - b.data.order);
+---
+
+<section id="work" class="mx-auto max-w-[1120px] px-6 pb-10 pt-24" aria-labelledby="work-h">
+  <p class="eyebrow mb-3.5">{workIntro.eyebrow}</p>
+  <h2
+    id="work-h"
+    class="display mb-12 max-w-[720px] text-[clamp(1.875rem,4vw+0.5rem,2.5rem)] leading-[1.12]"
+  >
+    {workIntro.heading}
+  </h2>
+  <ul class="m-0 flex list-none flex-wrap gap-7 p-0">
+    {
+      projects.map(({ data: p }) => (
+        <li class="flex min-w-0 flex-[1_1_320px]">
+          <article class="card flex w-full flex-col overflow-hidden rounded-2xl border border-line bg-card">
+            <div
+              class="relative box-border flex h-[150px] items-end px-[22px] py-[18px]"
+              style={`background:${p.tint}`}
+            >
+              <span class="display text-[64px] leading-[0.9] text-ink" aria-hidden="true">
+                {p.num}
+              </span>
+              <svg
+                viewBox="0 0 60 60"
+                aria-hidden="true"
+                class="absolute right-[18px] top-4 h-11 w-11"
+              >
+                <path
+                  d="M6 40 C 14 10, 26 54, 36 24 S 50 12, 54 20"
+                  fill="none"
+                  stroke="#16161A"
+                  stroke-width="3"
+                  stroke-linecap="round"
+                />
+              </svg>
+            </div>
+            <div class="flex flex-[1_1_auto] flex-col gap-3 px-6 pb-[26px] pt-6">
+              <h3 class="display m-0 text-[25px] leading-[1.15]">{p.title}</h3>
+              <p class="m-0 text-base text-ink-2">{p.blurb}</p>
+              <p class="mb-0 mt-auto text-[15px] text-ink">
+                <span class="font-semibold">My role: </span>
+                {p.role}
+              </p>
+              <div class="border-t border-line pt-3.5 text-center text-[13px] font-semibold tracking-[0.04em] text-muted">
+                {p.tagline}
+              </div>
+              <div class="border-t border-line pt-3.5">
+                <span class="display text-lg">{p.metric}</span>
+              </div>
+            </div>
+          </article>
+        </li>
+      ))
+    }
+  </ul>
+</section>

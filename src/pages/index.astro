@@ -1,0 +1,27 @@
+---
+import Base from '../layouts/Base.astro';
+import Nav from '../components/Nav.astro';
+import Hero from '../components/Hero.astro';
+import ProofStrip from '../components/ProofStrip.astro';
+import Work from '../components/Work.astro';
+import HowIWork from '../components/HowIWork.astro';
+import About from '../components/About.astro';
+import AskBand from '../components/AskBand.astro';
+import Footer from '../components/Footer.astro';
+import ContactDialog from '../components/ContactDialog';
+import { site } from '../data/site';
+---
+
+<Base>
+  <Nav />
+  <main id="main">
+    <Hero />
+    <ProofStrip />
+    <Work />
+    <HowIWork />
+    <About />
+    <AskBand />
+  </main>
+  <Footer />
+  <ContactDialog client:load linkedin={site.linkedin} />
+</Base>

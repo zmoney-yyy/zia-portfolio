@@ -1,0 +1,28 @@
+---
+import { Image } from 'astro:assets';
+import headshot from '../assets/headshot.jpg';
+import { about } from '../data/site';
+---
+
+<section
+  id="about"
+  class="mx-auto flex max-w-[1120px] flex-wrap items-center gap-12 px-6 pb-10 pt-[88px]"
+  aria-labelledby="about-h"
+>
+  <Image
+    src={headshot}
+    alt={about.photoAlt}
+    width={220}
+    height={220}
+    densities={[1, 2]}
+    class="box-border block h-[220px] w-[220px] flex-none rounded-full border-2 border-ink object-cover shadow-[6px_6px_0_var(--color-sun)]"
+    style="object-position: 50% 30%"
+  />
+  <div class="min-w-0 flex-[1_1_420px]">
+    <p class="eyebrow mb-3.5">{about.eyebrow}</p>
+    <h2 id="about-h" class="display mb-4 text-[34px] leading-[1.15] tracking-[-0.01em]">
+      {about.heading}
+    </h2>
+    <p class="m-0 max-w-[640px] text-lg text-ink-2">{about.body}</p>
+  </div>
+</section>

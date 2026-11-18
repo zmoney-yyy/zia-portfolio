@@ -1,0 +1,25 @@
+---
+import { howIWork } from '../data/site';
+---
+
+<section class="mt-14 bg-cream-2" aria-labelledby="how-h">
+  <div class="mx-auto max-w-[1120px] px-6 pb-[88px] pt-20">
+    <p class="eyebrow mb-3.5">{howIWork.eyebrow}</p>
+    <h2
+      id="how-h"
+      class="display mb-10 max-w-[720px] text-[clamp(1.875rem,4vw+0.5rem,2.5rem)] leading-[1.12]"
+    >
+      {howIWork.heading}
+    </h2>
+    <div class="flex flex-wrap gap-10">
+      {
+        howIWork.principles.map((w) => (
+          <div class="min-w-0 flex-[1_1_280px] border-t-[3px] border-accent pt-5">
+            <h3 class="display mb-2.5 text-2xl">{w.title}</h3>
+            <p class="m-0 text-base text-ink-2">{w.body}</p>
+          </div>
+        ))
+      }
+    </div>
+  </div>
+</section>
